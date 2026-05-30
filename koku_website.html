@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KOKU — The Sensory Architecture of Depth</title>
+<style>
+  :root {
+    --cream: #F5F2EB;
+    --red: #C53030;
+    --black: #1A1A1A;
+    --grey: #6B6B6B;
+    --light-grey: #E8E4DC;
+    --teal: #1D9E75;
+    --amber: #BA7517;
+    --purple: #534AB7;
+    --coral: #D85A30;
+    --blue: #185FA5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--cream); color: var(--black); font-family: 'Georgia', serif; }
+
+  /* NAV */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--black); padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  nav .logo { color: var(--cream); font-size: 1.1rem; letter-spacing: 0.2em; font-family: 'Helvetica Neue', sans-serif; font-weight: 300; }
+  nav .logo span { color: var(--red); }
+  nav .nav-links { display: flex; gap: 2rem; }
+  nav .nav-links a { color: rgba(245,242,235,0.6); text-decoration: none; font-size: 0.75rem; letter-spacing: 0.12em; font-family: 'Helvetica Neue', sans-serif; text-transform: uppercase; transition: color 0.2s; }
+  nav .nav-links a:hover { color: var(--cream); }
+
+  /* HERO */
+  .hero { padding: 6rem 2rem 4rem; max-width: 900px; margin: 0 auto; text-align: center; }
+  .hero .eyebrow { font-size: 0.7rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--grey); font-family: 'Helvetica Neue', sans-serif; margin-bottom: 1.5rem; }
+  .hero h1 { font-size: clamp(3rem, 8vw, 6rem); font-weight: 400; letter-spacing: -0.02em; line-height: 0.95; color: var(--black); margin-bottom: 2rem; }
+  .hero h1 em { font-style: normal; color: var(--red); }
+  .hero .tagline { font-size: 1.1rem; color: var(--grey); line-height: 1.7; max-width: 600px; margin: 0 auto 3rem; font-family: 'Helvetica Neue', sans-serif; font-weight: 300; }
+  .hero .def-box { border-left: 2px solid var(--red); padding: 1rem 1.5rem; text-align: left; margin: 0 auto; max-width: 600px; background: rgba(197,48,48,0.04); }
+  .hero .def-box p { font-size: 1rem; line-height: 1.7; color: var(--black); }
+  .hero .def-box .source { font-size: 0.7rem; letter-spacing: 0.1em; color: var(--grey); font-family: 'Helvetica Neue', sans-serif; text-transform: uppercase; margin-top: 0.5rem; }
+
+  /* SECTION WRAPPERS */
+  section { padding: 5rem 2rem; }
+  section.alt { background: var(--black); color: var(--cream); }
+  section.light { background: var(--light-grey); }
+  .section-inner { max-width: 1100px; margin: 0 auto; }
+  .section-label { font-size: 0.65rem; letter-spacing: 0.2em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--red); margin-bottom: 0.75rem; }
+  section.alt .section-label { color: rgba(197,48,48,0.8); }
+  h2 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 400; letter-spacing: -0.02em; margin-bottom: 1.5rem; line-height: 1.2; }
+  section.alt h2 { color: var(--cream); }
+  .intro-text { font-size: 1rem; line-height: 1.8; color: var(--grey); max-width: 680px; font-family: 'Helvetica Neue', sans-serif; font-weight: 300; }
+  section.alt .intro-text { color: rgba(245,242,235,0.65); }
+
+  /* DIAGRAM SECTION */
+  #diagram-section { background: var(--cream); }
+  .diagram-grid { display: grid; grid-template-columns: 1fr 380px; gap: 3rem; align-items: start; margin-top: 3rem; }
+  @media (max-width: 900px) { .diagram-grid { grid-template-columns: 1fr; } }
+
+  .radar-wrap { position: relative; }
+  #radar-canvas { width: 100%; max-width: 480px; display: block; margin: 0 auto; }
+
+  .controls-panel { }
+  .koku-score-display { border: 1px solid rgba(26,26,26,0.12); padding: 1.5rem; margin-bottom: 2rem; background: white; }
+  .score-num { font-size: 4rem; font-weight: 400; line-height: 1; letter-spacing: -0.04em; transition: color 0.4s; }
+  .score-sublabel { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin-bottom: 0.5rem; }
+  .score-desc { font-size: 0.85rem; line-height: 1.6; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin-top: 0.75rem; min-height: 3rem; }
+  .balance-row { margin-top: 1rem; }
+  .balance-label { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin-bottom: 4px; }
+  .balance-track { height: 3px; background: var(--light-grey); }
+  .balance-fill { height: 100%; transition: width 0.4s, background 0.4s; }
+
+  .group-title { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin: 1.5rem 0 0.75rem; padding-bottom: 0.4rem; border-bottom: 1px solid var(--light-grey); }
+  .slider-row { display: grid; grid-template-columns: 130px 1fr 28px; align-items: center; gap: 8px; margin-bottom: 0.6rem; }
+  .slider-label { font-size: 0.75rem; font-family: 'Helvetica Neue', sans-serif; color: var(--black); text-align: right; line-height: 1.3; }
+  .slider-val { font-size: 0.75rem; font-family: 'Helvetica Neue', sans-serif; font-weight: 500; color: var(--black); text-align: right; }
+  input[type=range] { width: 100%; -webkit-appearance: none; height: 2px; outline: none; border-radius: 0; transition: opacity 0.2s; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; cursor: pointer; margin-top: -5px; }
+  .reset-btn { display: block; width: 100%; margin-top: 1.5rem; padding: 0.6rem; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; background: none; border: 1px solid rgba(26,26,26,0.2); cursor: pointer; color: var(--grey); transition: all 0.2s; }
+  .reset-btn:hover { border-color: var(--black); color: var(--black); }
+
+  /* PRESETS */
+  .presets-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem; }
+  .preset-btn { padding: 0.4rem 0.8rem; font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; background: none; border: 1px solid rgba(26,26,26,0.2); cursor: pointer; transition: all 0.2s; color: var(--grey); }
+  .preset-btn:hover { color: var(--black); border-color: var(--black); }
+  .preset-btn.active { background: var(--black); color: var(--cream); border-color: var(--black); }
+  .presets-label { font-size: 0.65rem; letter-spacing: 0.15em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin-bottom: 0.5rem; margin-top: 1.5rem; }
+
+  /* PILLARS */
+  .pillars-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+  .pillar-card { border: 1px solid rgba(245,242,235,0.1); padding: 1.5rem; }
+  .pillar-num { font-size: 0.65rem; letter-spacing: 0.15em; font-family: 'Helvetica Neue', sans-serif; color: rgba(245,242,235,0.3); margin-bottom: 0.75rem; }
+  .pillar-name { font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--cream); }
+  .pillar-text { font-size: 0.8rem; font-family: 'Helvetica Neue', sans-serif; font-weight: 300; line-height: 1.65; color: rgba(245,242,235,0.6); }
+  .pillar-vernacular { font-size: 0.7rem; font-family: 'Helvetica Neue', sans-serif; margin-top: 0.75rem; color: rgba(245,242,235,0.4); font-style: italic; }
+
+  /* CULTURES */
+  .cultures-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5px; margin-top: 2.5rem; background: var(--light-grey); }
+  .culture-card { background: white; padding: 1.5rem; }
+  .culture-dot { width: 8px; height: 8px; border-radius: 50%; margin-bottom: 1rem; }
+  .culture-name { font-size: 0.85rem; letter-spacing: 0.05em; margin-bottom: 0.25rem; }
+  .culture-mechanism { font-size: 0.7rem; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); line-height: 1.5; margin-bottom: 0.75rem; }
+  .culture-quote { font-size: 0.75rem; font-family: 'Helvetica Neue', sans-serif; font-style: italic; color: var(--grey); border-left: 2px solid var(--light-grey); padding-left: 0.75rem; line-height: 1.5; }
+
+  /* INTERVIEWS */
+  .quotes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+  .quote-card { border: 1px solid rgba(26,26,26,0.08); padding: 1.5rem; background: white; }
+  .quote-text { font-size: 0.9rem; line-height: 1.7; color: var(--black); margin-bottom: 1rem; }
+  .quote-text::before { content: '\201C'; color: var(--red); font-size: 1.5rem; line-height: 0; vertical-align: -0.3em; margin-right: 2px; }
+  .quote-text::after { content: '\201D'; color: var(--red); font-size: 1.5rem; line-height: 0; vertical-align: -0.3em; margin-left: 2px; }
+  .quote-attr { font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); }
+
+  /* MECHANISMS TABLE */
+  .mechanisms-table { width: 100%; border-collapse: collapse; margin-top: 2rem; font-family: 'Helvetica Neue', sans-serif; font-size: 0.8rem; }
+  .mechanisms-table th { text-align: left; padding: 0.75rem 1rem; font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; border-bottom: 1px solid var(--light-grey); color: var(--grey); font-weight: 400; }
+  .mechanisms-table td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--light-grey); vertical-align: top; line-height: 1.5; color: var(--black); }
+  .mechanisms-table tr:last-child td { border-bottom: none; }
+  .mechanisms-table .mech-name { font-weight: 500; }
+  .tag { display: inline-block; padding: 2px 6px; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; border-radius: 2px; }
+
+  /* PROTOTYPES */
+  .proto-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 2.5rem; }
+  .proto-card { background: var(--light-grey); padding: 1.75rem; }
+  .proto-name { font-size: 1rem; margin-bottom: 0.25rem; letter-spacing: -0.01em; }
+  .proto-format { font-size: 0.65rem; letter-spacing: 0.12em; text-transform: uppercase; font-family: 'Helvetica Neue', sans-serif; color: var(--grey); margin-bottom: 1rem; }
+  .proto-koku { font-size: 0.8rem; font-family: 'Helvetica Neue', sans-serif; line-height: 1.6; color: var(--black); margin-bottom: 1rem; }
+  .proto-panel { font-size: 0.75rem; font-family: 'Helvetica Neue', sans-serif; line-height: 1.55; color: var(--grey); font-style: italic; border-top: 1px solid rgba(26,26,26,0.1); padding-top: 0.75rem; margin-top: 0.75rem; }
+
+  /* FOOTER */
+  footer { background: var(--black); padding: 3rem 2rem; text-align: center; }
+  footer p { font-size: 0.7rem; letter-spacing: 0.1em; color: rgba(245,242,235,0.3); font-family: 'Helvetica Neue', sans-serif; }
+  footer a { color: rgba(245,242,235,0.4); }
+
+  /* SCROLL ANCHOR */
+  .anchor { scroll-margin-top: 60px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">KO<span>KU</span> &nbsp;/&nbsp; North America &amp; Caribbean</div>
+  <div class="nav-links">
+    <a href="#what">What</a>
+    <a href="#diagram">Diagram</a>
+    <a href="#cultures">Cultures</a>
+    <a href="#voices">Voices</a>
+    <a href="#prototypes">Prototypes</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="eyebrow">Takasago KOKU Challenge &mdash; BCC 2026</div>
+  <h1>The feeling a dish<br><em>gives you everything</em></h1>
+  <p class="tagline">Five culinary traditions, one convergent discovery. Depth, richness, mouthfulness, and the sensation that lasts.</p>
+  <div class="def-box">
+    <p>KOKU (こく) is a Japanese sensory concept describing an integrated, multisensory experience of depth, richness, mouthfulness, and lingering satisfaction. It is not a single taste or compound &mdash; it is an emergent property of multiple sensory channels operating simultaneously.</p>
+    <div class="source">Team Consolidated Insights &mdash; May 2026</div>
+  </div>
+</div>
+
+<!-- FOUR PILLARS -->
+<section class="alt anchor" id="what">
+  <div class="section-inner">
+    <div class="section-label">The Architecture</div>
+    <h2>Four dimensions of KOKU</h2>
+    <p class="intro-text">KOKU cannot be reduced to a single flavor. It emerges when four perceptual dimensions operate in harmony, none dominating, all present.</p>
+    <div class="pillars-grid">
+      <div class="pillar-card">
+        <div class="pillar-num">01</div>
+        <div class="pillar-name">Richness</div>
+        <p class="pillar-text">Vertical intensity and depth of flavor built through long braising, reduction, Maillard reaction, and compound aromatic development over time.</p>
+        <div class="pillar-vernacular">"Goes all the way to the bone" &middot; "You can taste the roux" &middot; "Cooked all the way down"</div>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">02</div>
+        <div class="pillar-name">Mouthfulness</div>
+        <p class="pillar-text">Completeness and physical substance in the mouth. Collagen-derived gelatin, fat emulsification, starch thickening &mdash; the coating that carries everything else.</p>
+        <div class="pillar-vernacular">"Liquid gold" &middot; "Coats your mouth" &middot; "The broth gels when it cools"</div>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">03</div>
+        <div class="pillar-name">Harmony</div>
+        <p class="pillar-text">Balanced co-presence of all five basic tastes. No single element overwhelms. The acid lifts the richness. The bitter sharpens the sweet. Nothing fights.</p>
+        <div class="pillar-vernacular">"Seasoned right" &middot; "The sofrito ties it together" &middot; "Nothing sticks out wrong"</div>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">04</div>
+        <div class="pillar-name">Continuity</div>
+        <p class="pillar-text">Persistence of the experience after swallowing. The finish that evolves rather than drops. Gamma-glutamyl peptides activating CaSR receptors, extending duration.</p>
+        <div class="pillar-vernacular">"Stays with you" &middot; "Tastes better the next day" &middot; "The pepper builds as you go"</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTERACTIVE DIAGRAM -->
+<section id="diagram-section" class="anchor" id="diagram">
+  <div class="section-inner">
+    <div class="section-label">Interactive Model</div>
+    <h2>KOKU sensation diagram</h2>
+    <p class="intro-text">Adjust the sliders to model how each attribute contributes to the overall KOKU experience. Load a prototype preset to see the sensory profile of each product concept.</p>
+    <div class="diagram-grid">
+      <div class="radar-wrap">
+        <canvas id="radar-canvas" width="480" height="480"></canvas>
+        <div class="presets-label">Load a prototype profile</div>
+        <div class="presets-row">
+          <button class="preset-btn" data-preset="baseline" onclick="loadPreset('baseline')">Baseline</button>
+          <button class="preset-btn" data-preset="martini">Cold Brew Martini</button>
+          <button class="preset-btn" data-preset="bloody">Sofrito Bloody Mary</button>
+          <button class="preset-btn" data-preset="wings">BBQ Chicken Wings</button>
+          <button class="preset-btn" data-preset="sancocho">Sancocho</button>
+        </div>
+      </div>
+      <div class="controls-panel">
+        <div class="koku-score-display">
+          <div class="score-sublabel">KOKU Intensity</div>
+          <div class="score-num" id="score-num">5.0</div>
+          <div class="score-desc" id="score-desc">Adjust attributes to model the KOKU profile.</div>
+          <div class="balance-row">
+            <div class="balance-label">Attribute balance</div>
+            <div class="balance-track"><div class="balance-fill" id="balance-fill" style="width:50%"></div></div>
+          </div>
+        </div>
+        <div id="sliders-container"></div>
+        <button class="reset-btn" onclick="resetSliders()">Reset to baseline</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CULTURES -->
+<section class="light anchor" id="cultures">
+  <div class="section-inner">
+    <div class="section-label">Cultural Research</div>
+    <h2>Five traditions, one discovery</h2>
+    <p class="intro-text">These traditions did not independently develop dishes that resemble KOKU. They independently discovered the same sensory-chemical phenomenon through culturally specific routes converging on identical molecular endpoints.</p>
+    <div class="cultures-grid">
+      <div class="culture-card">
+        <div class="culture-dot" style="background: #C53030"></div>
+        <div class="culture-name">Caribbean &amp; Island</div>
+        <div class="culture-mechanism">Sofrito aromatic matrix &middot; bone braise (sancocho) &middot; overnight acid marination &middot; scotch bonnet chemesthesis</div>
+        <div class="culture-quote">The sofrito is everything. Without it, the pot is empty.</div>
+      </div>
+      <div class="culture-card">
+        <div class="culture-dot" style="background: #1A1A1A"></div>
+        <div class="culture-name">Soul Food</div>
+        <div class="culture-mechanism">Long braising &middot; collagen-gelatin conversion &middot; pot liquor &middot; smoked meat layering &middot; allium caramelization</div>
+        <div class="culture-quote">Liquid gold. Sop it up with cornbread. The best part is at the bottom of the bowl.</div>
+      </div>
+      <div class="culture-card">
+        <div class="culture-dot" style="background: #BA7517"></div>
+        <div class="culture-name">Cajun &amp; Creole</div>
+        <div class="culture-mechanism">Dark roux Maillard cascade &middot; holy trinity aromatic base &middot; andouille smoke &middot; filé and okra thickening</div>
+        <div class="culture-quote">You can't rush a roux. If you rushed it, you taste the rush.</div>
+      </div>
+      <div class="culture-card">
+        <div class="culture-dot" style="background: #534AB7"></div>
+        <div class="culture-name">Americana &amp; Immigrant</div>
+        <div class="culture-mechanism">Sunday sugo reduction &middot; Jewish brisket braising &middot; umami stacking &middot; red braising &middot; BBQ smoke bark</div>
+        <div class="culture-quote">The recipe survived the crossing. Changed but not lost.</div>
+      </div>
+      <div class="culture-card">
+        <div class="culture-dot" style="background: #1D9E75"></div>
+        <div class="culture-name">Indigenous Foodways</div>
+        <div class="culture-mechanism">Earth-pit and smoke cooking &middot; bone marrow extraction &middot; nixtamalization &middot; Three Sisters synergy</div>
+        <div class="culture-quote">The smoke carries the flavor. Everything from the land. Nothing wasted.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MECHANISMS -->
+<section class="anchor">
+  <div class="section-inner">
+    <div class="section-label">Chemistry of Depth</div>
+    <h2>Shared KOKU-generating processes</h2>
+    <p class="intro-text">Across all five traditions, the same molecular endpoints appear through distinct cultural routes. This convergence is the strongest evidence that KOKU is a universal sensory architecture.</p>
+    <table class="mechanisms-table">
+      <thead>
+        <tr>
+          <th style="width:200px">Process</th>
+          <th>Chemical Mechanism</th>
+          <th>KOKU Contribution</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="mech-name">Fat-carried aromatic base</span><br><span style="font-size:0.7rem;color:#6B6B6B">Sofrito &middot; Holy Trinity &middot; Mirepoix</span></td>
+          <td>Fat-soluble volatiles bloom in hot oil; alliums release gamma-glutamyl peptides; free glutamates from tomato/alliums activate umami receptors</td>
+          <td><span class="tag" style="background:#FEF3C7;color:#92400E">Harmony</span> <span class="tag" style="background:#DCFCE7;color:#166534">Richness</span></td>
+        </tr>
+        <tr>
+          <td><span class="mech-name">Collagen extraction</span><br><span style="font-size:0.7rem;color:#6B6B6B">Long braise &middot; Bone stock &middot; Sancocho</span></td>
+          <td>Collagen from bones, cartilage, and connective tissue converts to gelatin over 2–8 hours, building mouthfeel, viscosity, and coating body</td>
+          <td><span class="tag" style="background:#EDE9FE;color:#5B21B6">Mouthfulness</span> <span class="tag" style="background:#FEE2E2;color:#991B1B">Continuity</span></td>
+        </tr>
+        <tr>
+          <td><span class="mech-name">Maillard reaction</span><br><span style="font-size:0.7rem;color:#6B6B6B">Dark roux &middot; BBQ bark &middot; Pernil crust</span></td>
+          <td>Amino acids and reducing sugars under heat generate pyrazines, furans, melanoidins &mdash; hundreds of flavor compounds, including kokumi-active peptides</td>
+          <td><span class="tag" style="background:#DCFCE7;color:#166534">Richness</span> <span class="tag" style="background:#FEF3C7;color:#92400E">Harmony</span></td>
+        </tr>
+        <tr>
+          <td><span class="mech-name">Smoke compound infusion</span><br><span style="font-size:0.7rem;color:#6B6B6B">Wood smoke &middot; Andouille &middot; Pit roast</span></td>
+          <td>Guaiacol, syringol, and creosol from wood combustion dissolve into fat and water matrices, contributing retronasal aroma and KOKU continuity</td>
+          <td><span class="tag" style="background:#FEE2E2;color:#991B1B">Continuity</span> <span class="tag" style="background:#DCFCE7;color:#166534">Richness</span></td>
+        </tr>
+        <tr>
+          <td><span class="mech-name">Acid balance</span><br><span style="font-size:0.7rem;color:#6B6B6B">Sour orange &middot; Vinegar &middot; Hot sauce</span></td>
+          <td>Lowered pH activates kokumi-active peptides; acid contrast makes richness perceptible; like light creating shadow in a deep flavor profile</td>
+          <td><span class="tag" style="background:#FEF3C7;color:#92400E">Harmony</span> <span class="tag" style="background:#EDE9FE;color:#5B21B6">Mouthfulness</span></td>
+        </tr>
+        <tr>
+          <td><span class="mech-name">Extended time</span><br><span style="font-size:0.7rem;color:#6B6B6B">Low and slow &middot; Overnight &middot; All-day cook</span></td>
+          <td>Duration is itself a flavor variable: gamma-glutamyl peptides accumulate, gelatin deepens, aromatic integration builds, the "better the next day" effect</td>
+          <td><span class="tag" style="background:#FEE2E2;color:#991B1B">Continuity</span> <span class="tag" style="background:#DCFCE7;color:#166534">Richness</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- INTERVIEW VOICES -->
+<section class="light anchor" id="voices">
+  <div class="section-inner">
+    <div class="section-label">Field Research &mdash; Interviews</div>
+    <h2>How people describe KOKU without knowing the word</h2>
+    <p class="intro-text">Semi-structured interviews across Puerto Rico, the United States, Australia, and Poland. Participants described KOKU through lived experience, cultural memory, and the language of their own kitchens.</p>
+    <div class="quotes-grid">
+      <div class="quote-card">
+        <div class="quote-text">You know when you have a first Dorito and it blows up in your mouth but you can't recreate that in the next bite? In the oxtail soup, the feeling and experience maintains.</div>
+        <div class="quote-attr">Kevin &mdash; Chef interview, on oxtail soup</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">Un buen sofrito es fundamental. Nada de lata. La base en grasa donde con anterioridad se ha sofrito la carne. Eso es lo más importante.</div>
+        <div class="quote-attr">Abuela de Yauco, Puerto Rico</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">It's in your DNA. You already know it. If you don't know it, it won't affect you as much. That feeling of home will not attract you.</div>
+        <div class="quote-attr">Iris Aponte &mdash; Puerto Rican pop-up, Spanish Harlem NYC</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">A meal feels complete when you can taste multiple flavors &mdash; rich and light, soft and textured, savory with a hint of acid or warmth. Like love: powerful and intense, rewarding and comforting.</div>
+        <div class="quote-attr">Survey respondent</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">When you have more time and you are able to do everything with intention, time is a huge factor. Unfortunately time is not available most days so we settle.</div>
+        <div class="quote-attr">Iris Aponte &mdash; on the role of time in KOKU</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">The pasta is just a vehicle. The ragu is the point. Everything else is just the excuse to eat the sauce.</div>
+        <div class="quote-attr">Representative Lexicon &mdash; Americana sector</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">It feels like a hug. You want to keep eating it even when you're satisfied, because you don't want the experience to end.</div>
+        <div class="quote-attr">Survey respondent &mdash; describing deeply satisfying food</div>
+      </div>
+      <div class="quote-card">
+        <div class="quote-text">Warm fuzzy feeling. That's what a deeply satisfying dish gives you. Something complete. Satisfying.</div>
+        <div class="quote-attr">Delis &mdash; Puerto Rican cook, United States</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TASTING SESSION -->
+<section class="alt anchor">
+  <div class="section-inner">
+    <div class="section-label">GOe Tech Center Tasting &mdash; May 2026</div>
+    <h2>Gravy panel: three samples, one question</h2>
+    <p class="intro-text">A semi-expert panel evaluated three gravy samples &mdash; bland, stock-based, and complex &mdash; to isolate the sensory drivers of KOKU. The session generated four propositions that will anchor Phase 2 work.</p>
+    <div class="pillars-grid" style="margin-top:2rem">
+      <div class="pillar-card">
+        <div class="pillar-num">Finding 1</div>
+        <div class="pillar-name">KOKU is not taste alone</div>
+        <p class="pillar-text">Texture, temperature, persistence, and balance were equally or more salient than discrete flavor. KOKU is a holistic, multi-modal sensation.</p>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">Finding 2</div>
+        <div class="pillar-name">Roundness as functional indicator</div>
+        <p class="pillar-text">"Rounded" was the most recurrent marker across all three samples. It may serve as a usable criterion in future CATA protocols.</p>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">Finding 3</div>
+        <div class="pillar-name">Familiarity potentiates, not constitutes</div>
+        <p class="pillar-text">Nostalgic associations correlated with KOKU perception but were not sufficient on their own. KOKU requires intrinsic sensory quality beyond memory.</p>
+      </div>
+      <div class="pillar-card">
+        <div class="pillar-num">Finding 4</div>
+        <div class="pillar-name">Context modulates KOKU</div>
+        <p class="pillar-text">KOKU may be latent in a sample and activated through pairing with complementary textures or temperatures. Serving context is a variable in KOKU perception.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROTOTYPES -->
+<section class="anchor" id="prototypes">
+  <div class="section-inner">
+    <div class="section-label">Prototype Concepts &mdash; June 2026</div>
+    <h2>Translating KOKU into product</h2>
+    <p class="intro-text">Three final prototype concepts developed for the June 1st refinement session. Each translates a specific cultural KOKU mechanism into a format that delivers depth without requiring hours of preparation.</p>
+    <div class="proto-grid">
+
+      <div class="proto-card">
+        <div class="proto-name">Cold Brew Martini</div>
+        <div class="proto-format">RTD Cocktail &mdash; Puerto Rico</div>
+        <div class="proto-koku">Smoked coconut and cinnamon vodka (fat-washed, smoke-infused at 50&deg;C) + 72-hour Yauco cold brew concentrate + coffee liqueur + panela syrup + coconut milk nitro foam + egg white. KOKU mechanism: the smoked vodka base delivers fat-carried aromatic continuity; cold brew extraction preserves natural sweetness without harsh acids; coconut milk foam creates coating mouthfulness on every sip; panela adds round caramel body without sharp sweetness.</div>
+        <div class="proto-panel">Previous panel feedback: body too thin, alcohol slightly too present. This iteration responds directly: the fat wash and smoke infusion add mouthfeel to the spirit base itself, the 72-hour cold brew deepens retronasal complexity, and the nitro foam replaces plain foam with a sustained textural arc.</div>
+      </div>
+
+      <div class="proto-card">
+        <div class="proto-name">Sofrito Bloody Mary</div>
+        <div class="proto-format">Savory Cocktail &mdash; Caribbean</div>
+        <div class="proto-koku">Roasted sofrito concentrate (charred bell pepper, caramelized garlic, chipotle, adobo, lime) + triple-format tomato base (roasted fresh, reduced paste, quality juice) + mushroom soy + Worcestershire + fermented pickle brine + sherry vinegar + piperine + smoked paprika. Rim: dehydrated sofrito salt. Garnish: crisp bacon, charred lime, pickled okra, fried plantain chip, fresh cilantro. KOKU mechanism: three tomato formats create layered umami; sofrito concentrate delivers kokumi-active gamma-glutamyl peptides from alliums; fermented elements (pickle brine, Worcestershire, mushroom soy) stack depth; acid resolution from lime and vinegar activates the whole profile without dominating.</div>
+        <div class="proto-panel">Roll, do not shake &mdash; shaking breaks the fat emulsion from the vodka wash and creates oily separation. The garnish skewer is not decoration: each element (bacon smoke, charred lime acid, pickled okra brine, plantain starch, cilantro brightness) modulates the drink's KOKU profile as you consume it.</div>
+      </div>
+
+      <div class="proto-card">
+        <div class="proto-name">Bourbon Chipotle Chicken Wings</div>
+        <div class="proto-format">Snack &mdash; Americana</div>
+        <div class="proto-koku">BBQ sauce: caramelized grated onion + garlic + bourbon deglaze + ketchup + molasses + Worcestershire + cider vinegar + Dijon + Tabasco + deseeded chipotle + adobo sauce + oak smoke. Wings: dry-brined overnight, sous-vide at 71&deg;C for 2 hours, air-dried 8&ndash;24 hours, brushed and broiled. KOKU mechanism: Maillard bark from broil plus collagen conversion from sous-vide creates simultaneous surface intensity and deep textural richness; molasses adds non-cloying caramel body; bourbon oak integrates smoke without dominating; Worcestershire provides fermented glutamate continuity; overnight dry brine ensures the depth reaches the bone, not just the surface.</div>
+        <div class="proto-panel">The sous-vide step is non-negotiable for KOKU: 71&deg;C for 2 hours fully converts collagen in the wing joints, producing the gelatin-rich coating that makes each bite feel complete. The air-dry before broiling ensures the Maillard crust has maximum surface area to develop, compressing the &ldquo;low and slow BBQ&rdquo; mechanism into a 30-minute finish.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>North American &amp; Caribbean Team &mdash; Takasago KOKU Challenge &mdash; Basque Culinary Center, May 2026<br>
+  Adriana De Cardona &middot; Melanie Rausch &middot; Daniel Mattei-Lopez &middot; Rissa Freedman &middot; Manuel Jim&eacute;nez</p>
+</footer>
+
+<script>
+// ============================================================
+// DIAGRAM ENGINE
+// ============================================================
+const ATTRS = [
+  { key:"umami",      label:"Umami depth",       group:"foundation", weight:1.3, color:"#C53030" },
+  { key:"richness",   label:"Mouthfeel",          group:"foundation", weight:1.2, color:"#C53030" },
+  { key:"continuity", label:"Continuity",         group:"foundation", weight:1.2, color:"#C53030" },
+  { key:"complexity", label:"Flavour complexity", group:"foundation", weight:1.1, color:"#C53030" },
+  { key:"maillard",   label:"Maillard / char",    group:"aromatic",   weight:1.0, color:"#534AB7" },
+  { key:"ferment",    label:"Fermentation",       group:"aromatic",   weight:0.9, color:"#534AB7" },
+  { key:"fat",        label:"Fat / emulsion",     group:"texture",    weight:1.0, color:"#BA7517" },
+  { key:"spice",      label:"Spice / heat",       group:"texture",    weight:0.8, color:"#BA7517" },
+  { key:"acid",       label:"Acid balance",       group:"texture",    weight:0.9, color:"#BA7517" },
+  { key:"finish",     label:"Finish length",      group:"temporal",   weight:1.1, color:"#1D9E75" },
+  { key:"onset",      label:"Onset speed",        group:"temporal",   weight:0.8, color:"#1D9E75" },
+];
+
+const GROUP_COLORS = { foundation:"#C53030", aromatic:"#534AB7", texture:"#BA7517", temporal:"#1D9E75" };
+const GROUP_LABELS = { foundation:"Sensory Foundation", aromatic:"Aromatic Character", texture:"Texture & Contrast", temporal:"Temporal Dimension" };
+
+const PRESETS = {
+  baseline:  { umami:5, richness:5, continuity:5, complexity:5, maillard:5, ferment:5, fat:5, spice:5, acid:5, finish:5, onset:5 },
+  martini:   { umami:5, richness:9, continuity:8, complexity:8, maillard:8, ferment:3, fat:8, spice:1, acid:2, finish:9, onset:8 },
+  bloody:    { umami:9, richness:7, continuity:9, complexity:10, maillard:7, ferment:8, fat:5, spice:7, acid:9, finish:8, onset:9 },
+  wings:     { umami:8, richness:7, continuity:9, complexity:8, maillard:9, ferment:7, fat:6, spice:8, acid:6, finish:8, onset:7 },
+  sancocho:  { umami:9, richness:9, continuity:9, complexity:8, maillard:6, ferment:3, fat:8, spice:6, acid:7, finish:9, onset:5 },
+};
+
+const vals = {};
+ATTRS.forEach(a => vals[a.key] = 5);
+
+function buildSliders() {
+  const cont = document.getElementById('sliders-container');
+  let lastGroup = null;
+  ATTRS.forEach(a => {
+    if (a.group !== lastGroup) {
+      const g = document.createElement('div');
+      g.className = 'group-title';
+      g.textContent = GROUP_LABELS[a.group];
+      cont.appendChild(g);
+      lastGroup = a.group;
+    }
+    const row = document.createElement('div');
+    row.className = 'slider-row';
+    const lbl = document.createElement('div');
+    lbl.className = 'slider-label';
+    lbl.textContent = a.label;
+    const inp = document.createElement('input');
+    inp.type = 'range'; inp.min = 0; inp.max = 10; inp.step = 1; inp.value = 5;
+    inp.style.cssText = `background: linear-gradient(to right, ${a.color} 0%, ${a.color} 50%, #E8E4DC 50%, #E8E4DC 100%);`;
+    inp.style.setProperty('--thumb-color', a.color);
+    inp.setAttribute('data-key', a.key);
+    const valEl = document.createElement('div');
+    valEl.className = 'slider-val';
+    valEl.id = 'v-' + a.key;
+    valEl.textContent = '5';
+    inp.oninput = () => {
+      vals[a.key] = +inp.value;
+      valEl.textContent = inp.value;
+      const pct = (inp.value / 10 * 100).toFixed(0);
+      inp.style.background = `linear-gradient(to right, ${a.color} 0%, ${a.color} ${pct}%, #E8E4DC ${pct}%, #E8E4DC 100%)`;
+      update();
+    };
+    const style = document.createElement('style');
+    style.textContent = `input[data-key="${a.key}"]::-webkit-slider-thumb { background: ${a.color}; }`;
+    document.head.appendChild(style);
+    row.appendChild(lbl); row.appendChild(inp); row.appendChild(valEl);
+    cont.appendChild(row);
+  });
+}
+
+function computeScore() {
+  let ws = 0, wt = 0;
+  ATTRS.forEach(a => { ws += vals[a.key] * a.weight; wt += a.weight; });
+  const raw = ws / wt;
+  const allV = ATTRS.map(a => vals[a.key]);
+  const mean = allV.reduce((s,v)=>s+v,0)/allV.length;
+  const variance = allV.reduce((s,v)=>s+(v-mean)**2,0)/allV.length;
+  const penalty = variance > 3 ? (variance - 3) * 0.05 : 0;
+  return Math.max(0, Math.min(10, raw - penalty));
+}
+
+function getBalance() {
+  const allV = ATTRS.map(a => vals[a.key]);
+  const mean = allV.reduce((s,v)=>s+v,0)/allV.length;
+  const variance = allV.reduce((s,v)=>s+(v-mean)**2,0)/allV.length;
+  return Math.max(0, Math.min(100, 100 - variance * 4));
+}
+
+function scoreColor(s) {
+  if (s < 3) return '#D85A30';
+  if (s < 5) return '#BA7517';
+  if (s < 7) return '#1D9E75';
+  return '#185FA5';
+}
+
+function describeScore(s) {
+  if (s < 2) return 'Minimal KOKU — sensation is flat and one-dimensional. Build umami depth and mouthfeel.';
+  if (s < 4) return 'Emerging KOKU — some richness and continuity present, but lacking full layering and finish.';
+  if (s < 6) return 'Moderate KOKU — recognizable body and persistence. Aromatic complexity and balance can deepen.';
+  if (s < 7.5) return 'Strong KOKU — well-rounded, with noticeable mouthfeel, continuity, and aromatic lift.';
+  if (s < 9) return 'Pronounced KOKU — fully integrated. Texture, umami, and finish are in harmony.';
+  return 'Peak KOKU — all dimensions active. A deeply satisfying, resonant, full-spectrum sensory experience.';
+}
+
+function update() {
+  const score = computeScore();
+  const balance = getBalance();
+  const col = scoreColor(score);
+  document.getElementById('score-num').textContent = score.toFixed(1);
+  document.getElementById('score-num').style.color = col;
+  document.getElementById('score-desc').textContent = describeScore(score);
+  document.getElementById('balance-fill').style.width = Math.round(balance) + '%';
+  document.getElementById('balance-fill').style.background = col;
+  drawRadar(score);
+}
+
+function resetSliders() {
+  ATTRS.forEach(a => {
+    vals[a.key] = 5;
+    const inp = document.querySelector(`input[data-key="${a.key}"]`);
+    if (inp) { inp.value = 5; const pct = 50; inp.style.background = `linear-gradient(to right, ${a.color} 0%, ${a.color} ${pct}%, #E8E4DC ${pct}%, #E8E4DC 100%)`; }
+    document.getElementById('v-' + a.key).textContent = '5';
+  });
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('[data-preset="baseline"]').classList.add('active');
+  update();
+}
+
+function loadPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+  ATTRS.forEach(a => {
+    vals[a.key] = p[a.key] || 5;
+    const inp = document.querySelector(`input[data-key="${a.key}"]`);
+    if (inp) { inp.value = vals[a.key]; const pct = (vals[a.key]/10*100).toFixed(0); inp.style.background = `linear-gradient(to right, ${a.color} 0%, ${a.color} ${pct}%, #E8E4DC ${pct}%, #E8E4DC 100%)`; }
+    document.getElementById('v-' + a.key).textContent = vals[a.key];
+  });
+  document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-preset="${name}"]`);
+  if (btn) btn.classList.add('active');
+  update();
+}
+
+// Attach preset buttons
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  const name = btn.getAttribute('data-preset');
+  btn.onclick = () => loadPreset(name);
+});
+
+// ============================================================
+// RADAR
+// ============================================================
+function drawRadar(kokuScore) {
+  const canvas = document.getElementById('radar-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const cx = W/2, cy = H/2;
+  const R = Math.min(W,H)/2 - 55;
+  const n = ATTRS.length;
+  function angle(i) { return (Math.PI * 2 * i / n) - Math.PI/2; }
+  function pt(i, r) { return { x: cx + r * Math.cos(angle(i)), y: cy + r * Math.sin(angle(i)) }; }
+
+  // Grid rings
+  [2,4,6,8,10].forEach(level => {
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const p = pt(i % n, (level/10)*R);
+      i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(26,26,26,0.07)';
+    ctx.lineWidth = 0.5;
+    ctx.stroke();
+    if (level % 4 === 0) {
+      ctx.font = '10px Helvetica Neue, sans-serif';
+      ctx.fillStyle = 'rgba(107,107,107,0.5)';
+      ctx.textAlign = 'center';
+      ctx.fillText(level, cx + 4, cy - (level/10)*R - 4);
+    }
+  });
+
+  // Axis lines
+  ATTRS.forEach((_,i) => {
+    const p = pt(i, R);
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(p.x,p.y);
+    ctx.strokeStyle = 'rgba(26,26,26,0.1)'; ctx.lineWidth = 0.5; ctx.stroke();
+  });
+
+  // Group fills
+  const groups = ['foundation','aromatic','texture','temporal'];
+  groups.forEach(group => {
+    const indices = ATTRS.map((a,i) => a.group===group ? i : null).filter(x=>x!==null);
+    if (indices.length < 2) return;
+    ctx.beginPath();
+    indices.forEach((i, ii) => {
+      const v = vals[ATTRS[i].key];
+      const p = pt(i, (v/10)*R);
+      ii === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    const c = GROUP_COLORS[group];
+    ctx.fillStyle = c + '18';
+    ctx.fill();
+    ctx.strokeStyle = c + '60';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  });
+
+  // Full polygon
+  ctx.beginPath();
+  ATTRS.forEach((a, i) => {
+    const v = vals[a.key];
+    const p = pt(i, (v/10)*R);
+    i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+  });
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(26,26,26,0.3)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  // Dots
+  ATTRS.forEach((a, i) => {
+    const v = vals[a.key];
+    const p = pt(i, (v/10)*R);
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+    ctx.fillStyle = GROUP_COLORS[a.group]; ctx.fill();
+  });
+
+  // Labels
+  ctx.font = '11px Helvetica Neue, sans-serif';
+  ctx.fillStyle = 'rgba(26,26,26,0.55)';
+  ATTRS.forEach((a, i) => {
+    const ang = angle(i);
+    const p = pt(i, R + 22);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const words = a.label.split(' ');
+    if (words.length > 1 && a.label.length > 9) {
+      const mid = Math.ceil(words.length/2);
+      ctx.fillText(words.slice(0,mid).join(' '), p.x, p.y - 7);
+      ctx.fillText(words.slice(mid).join(' '), p.x, p.y + 7);
+    } else {
+      ctx.fillText(a.label, p.x, p.y);
+    }
+  });
+
+  // Center score
+  const col = scoreColor(kokuScore);
+  ctx.font = '600 28px Helvetica Neue, sans-serif';
+  ctx.fillStyle = col;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(kokuScore.toFixed(1), cx, cy - 8);
+  ctx.font = '11px Helvetica Neue, sans-serif';
+  ctx.fillStyle = 'rgba(107,107,107,0.7)';
+  ctx.fillText('KOKU', cx, cy + 12);
+}
+
+buildSliders();
+loadPreset('baseline');
+</script>
+</body>
+</html>
